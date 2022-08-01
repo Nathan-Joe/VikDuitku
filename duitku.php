@@ -80,8 +80,8 @@ abstract class AbstractDuitkuPayment extends JPayment{
             'customerVaName' => $name,
             'email' => $email,
             'phoneNumber' => $phone,
-            'callbackUrl' => esc_url_raw($callback),
-            'returnUrl' => esc_url_raw($return)
+            'callbackUrl' => esc_url_raw($callbackUrl),
+            'returnUrl' => esc_url_raw($returnUrl)
         );
         $args = array(
             'body'        => json_encode($params),
