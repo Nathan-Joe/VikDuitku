@@ -1,5 +1,7 @@
 <?php
 
+include_once dirname(__FILE__) . '/vikbooking-duitku-sanitized.php';
+include_once dirname(__FILE__) . '/vikbooking-duitku-validation.php';
 defined('ABSPATH') or die('No script kiddies please!');
 
 JLoader::import('adapter.payment.payment');
@@ -7,7 +9,10 @@ JLoader::import('adapter.payment.payment');
 
 abstract class AbstractDuitkuPayment extends JPayment{
 	
-	
+	/** you can control it with Sanitized (default: true) */
+    public static $sanitized = true;
+    public static $validation = true;
+    
 	protected function buildAdminParameters() {
 		return array(
             'merchantcode' => array(
@@ -28,6 +33,10 @@ abstract class AbstractDuitkuPayment extends JPayment{
                 'type' => 'select',
                 'options' => array('Yes', 'No'),
             ),
+            'expiry' => array(
+                'label' => __('Expiry Period','vikbooking'),
+                'type' => 'text'
+            ),
         );
 	}
 	
@@ -40,6 +49,7 @@ abstract class AbstractDuitkuPayment extends JPayment{
 
         $merchantCode = $this->getParam('merchantcode');
         $merchantKey = $this->getParam('merchantkey');
+        $expiryPeriod = $this->getParam('expiry');
         $timestamp = round(microtime(true) * 1000); 
         $amount =$this->get('total_to_pay');
         $details = $this->get('details');
@@ -52,9 +62,9 @@ abstract class AbstractDuitkuPayment extends JPayment{
         $email = $this->get('custmail');
         $phone = $this->get('phone');
         $returnUrl = $this->get('return_url');
-        $return = str_replace("http://localhost","https://9eed-182-253-47-123.ap.ngrok.io",$returnUrl);
+        $return = str_replace("http://localhost","https://c234-182-253-47-123.ap.ngrok.io",$returnUrl);
         $callbackUrl =$this->get('notify_url');
-        $callback = str_replace("http://localhost","https://9eed-182-253-47-123.ap.ngrok.io",$callbackUrl);
+        $callback = str_replace("http://localhost","https://c234-182-253-47-123.ap.ngrok.io",$callbackUrl);
         
 
         if( $this->getParam('testmode') == 'Yes' ) {
@@ -62,6 +72,10 @@ abstract class AbstractDuitkuPayment extends JPayment{
         }
         else{
             $action_url = "https://api-prod.duitku.com/api/merchant/createInvoice";
+        }
+        
+        if(empty($expiryPeriod)){
+            $expiryPeriod = 24;
         }
 
         $headers = array(
@@ -81,8 +95,18 @@ abstract class AbstractDuitkuPayment extends JPayment{
             'email' => $email,
             'phoneNumber' => $phone,
             'callbackUrl' => esc_url_raw($callback),
-            'returnUrl' => esc_url_raw($return)
+            'returnUrl' => esc_url_raw($return),
+            'expiryPeriod' => $expiryPeriod
         );
+
+        if (self::$validation) {
+            WC_Gateway_Duitku_Validation::duitkuRequest($params);
+        }
+          
+        if (self::$sanitized) {
+            WC_Gateway_Duitku_Sanitized::duitkuRequest($params);
+        }
+        
         $args = array(
             'body'        => json_encode($params),
             'timeout'     => '90',
@@ -95,6 +119,7 @@ abstract class AbstractDuitkuPayment extends JPayment{
          $server_output = wp_remote_retrieve_body($response);
          $resp = json_decode($server_output);
          echo $callbackUrl;
+         //echo $expiryPeriod;
          //echo json_encode($details);
          if (isset($resp->statusCode)){
             if($resp->statusCode == "00"){
