@@ -8,7 +8,7 @@
  *
  * This feature is optional, you can control it with $sanitized (default: true)
  */
-class WC_Gateway_Duitku_Validation
+class Vikbooking_Duitku_Validation
 {
 	
     // private $filters;
@@ -30,11 +30,11 @@ class WC_Gateway_Duitku_Validation
 		}
             
         if (!filter_var($json['email'], FILTER_VALIDATE_EMAIL)) {
-        throw new Exception(__('The email address entered did not appear to be a valid email address. Please enter a valid email address.', 'vikduitku'));
+        throw new Exception(__('The email address entered did not appear to be a valid email address. Please enter a valid email address.', 'vikbooking'));
         }
 		
-        if (filter_var($json['phoneNumber'], FILTER_VALIDATE_INT)) {
-        throw new Exception(__('The phone number entered did not appear to be a valid phoneNumber address. Please enter a valid phone number.', 'vikduitku'));
+        if (!filter_var($json['phoneNumber'], FILTER_VALIDATE_INT)) {
+        throw new Exception(__('The phone number entered did not appear to be a valid phoneNumber address. Please enter a valid phone number.', 'vikbooking'));
     }
 	
 

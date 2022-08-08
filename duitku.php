@@ -60,11 +60,11 @@ abstract class AbstractDuitkuPayment extends JPayment{
         $name = substr(explode("\r\n", $cust_data)[0],6);
         $prod_detail = $this->get('transaction_name');
         $email = $this->get('custmail');
-        $phone = $this->get('phone');
+        $phone = substr(explode("\r\n", $cust_data)[3],7);
         $returnUrl = $this->get('return_url');
-        $return = str_replace("http://localhost","https://c234-182-253-47-123.ap.ngrok.io",$returnUrl);
+        $return = str_replace("http://localhost","https://331d-182-253-47-123.ap.ngrok.io",$returnUrl);
         $callbackUrl =$this->get('notify_url');
-        $callback = str_replace("http://localhost","https://c234-182-253-47-123.ap.ngrok.io",$callbackUrl);
+        $callback = str_replace("http://localhost","https://331d-182-253-47-123.ap.ngrok.io",$callbackUrl);
         
 
         if( $this->getParam('testmode') == 'Yes' ) {
@@ -94,19 +94,19 @@ abstract class AbstractDuitkuPayment extends JPayment{
             'customerVaName' => $name,
             'email' => $email,
             'phoneNumber' => $phone,
-            'callbackUrl' => esc_url_raw($callback),
-            'returnUrl' => esc_url_raw($return),
+            'callbackUrl' => esc_url_raw($callbackUrl),
+            'returnUrl' => esc_url_raw($returnUrl),
             'expiryPeriod' => $expiryPeriod
         );
 
         if (self::$validation) {
-            WC_Gateway_Duitku_Validation::duitkuRequest($params);
+            Vikbooking_Duitku_Validation::duitkuRequest($params);
         }
           
         if (self::$sanitized) {
-            WC_Gateway_Duitku_Sanitized::duitkuRequest($params);
+            Vikbooking_Duitku_Sanitized::duitkuRequest($params);
         }
-        
+
         $args = array(
             'body'        => json_encode($params),
             'timeout'     => '90',
@@ -118,7 +118,8 @@ abstract class AbstractDuitkuPayment extends JPayment{
          $httpcode = wp_remote_retrieve_response_code($response);
          $server_output = wp_remote_retrieve_body($response);
          $resp = json_decode($server_output);
-         echo $callbackUrl;
+         //echo $callbackUrl;
+         echo json_encode($params);
          //echo $expiryPeriod;
          //echo json_encode($details);
          if (isset($resp->statusCode)){

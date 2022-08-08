@@ -8,7 +8,7 @@
  *
  * This feature is optional
  */
-class WC_Gateway_Duitku_Sanitized
+class Vikbooking_Duitku_Sanitized
 
 {
     //  private $filters;
