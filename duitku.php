@@ -44,17 +44,7 @@ abstract class AbstractDuitkuPayment extends JPayment{
 		parent::__construct($alias, $order, $params);
 	}
 
-	function debug_to_console($data) {
-        $output = $data;
-        if (is_array($output))
-            $output = implode(',', $output);
-    
-        echo "<script>console.log('Debug Objects: " . $output . "' );</script>";
-    }
-
-	protected function beginTransaction() {
-		/** See the code below to build this method */
-
+	function duitku_invoice() {
         $merchantCode = $this->getParam('merchantcode');
         $merchantKey = $this->getParam('merchantkey');
         $expiryPeriod = $this->getParam('expiry');
@@ -83,7 +73,7 @@ abstract class AbstractDuitkuPayment extends JPayment{
         }
         
         if(empty($expiryPeriod)){
-            $expiryPeriod = 24;
+            $expiryPeriod = 1440;
         }
 
         $headers = array(
@@ -126,37 +116,41 @@ abstract class AbstractDuitkuPayment extends JPayment{
          $httpcode = wp_remote_retrieve_response_code($response);
          $server_output = wp_remote_retrieve_body($response);
          $resp = json_decode($server_output);
-         echo $httpcode;
-         if ($httpcode == 200)
-         {
-            $status = new JPaymentStatus();
-            $status -> appendLog($httpcode);
-         }
-         //echo json_encode($response);
-         //echo json_encode($server_output);
-         //echo json_encode($params);
-         //echo $expiryPeriod;
-         //echo json_encode($details);
+
          if (isset($resp->statusCode)){
             if($resp->statusCode == "00"){
-                if($this->getParam('uimode') == 'Redirect'){
-                    $redirectUrl = $resp->paymentUrl;
-                    //$form='<form action="'.$action_url.'" method="post">';
-                    $form='<a href="'.$redirectUrl.'">';  
-                    $form.='<input type="submit" name = "button" value="Proceed to Payment" class="btn btn-outline-primary me-2"/>';
-                    //$form.='</form>';
-                    echo $form;
-                    if(isset($_POST["button"])){
-                        $response = wp_remote_post($action_url, $args);
-                    }
-                }
-                else{
+                $redirectUrl = $resp->paymentUrl;
+                $form1 = '<a href="'.$redirectUrl.'">'; 
+                $form1.= '<input type="submit" value="Proceed to Payment" class="btn btn-outline-primary me-2"/>';
+                header("Location:".$redirectUrl);
+                exit;
+                if($this->getParam('uimode') == 'Popup'){
                     $reference = $resp->reference;
-                    //echo $reference;
                     echo '<script src="https://app-sandbox.duitku.com/lib/js/duitku.js"></script> <button type="button" id="test" class="btn btn-outline-primary me-2">test</button><script type="text/javascript">var libraryDuitkuCheckoutExecute=false; var libraryDuitkuCheckout=function (event){if (libraryDuitkuCheckoutExecute){return false;}libraryDuitkuCheckoutExecute=true; var checkoutButton=document.getElementById("test"); var REFERENCE_NUMBER="'.$reference.'"; var LANG="<%=lang %>"; var countExecute=0; var checkoutExecuted=false; var intervalFunction=0; function executeCheckout(){intervalFunction=setInterval(function (){try{console.log("Duitku payment running.", ++countExecute); checkout.process(REFERENCE_NUMBER); checkoutExecuted=true;}catch (e){if (countExecute >=20){location.reload(); checkoutButton.className="btn btn-info"; checkoutButton.innerHTML="Reloading..."; return;}}finally{clearInterval(intervalFunction);}}, 1000);}var clickCount=0; checkoutButton.className="btn btn-success"; checkoutButton.innerHTML="Proceed to Payment"; checkoutButton.onclick=function (){if (clickCount >=2){location.reload(); checkoutButton.className="btn btn-info"; checkoutButton.innerHTML="Reloading..."; return;}checkoutButton.className="btn btn-success"; checkoutButton.innerHTML="Proceed to Payment"; executeCheckout(); clickCount++;}; executeCheckout();}; document.addEventListener("DOMContentLoaded", libraryDuitkuCheckout); setTimeout(function (){console.log("calling"); libraryDuitkuCheckout(null);}, 30000);</script>';
                 }
              }
          }
+    }
+
+	protected function beginTransaction() {
+		/** See the code below to build this method */
+
+         if($this->getParam('uimode') == 'Redirect'){
+            //$redirectUrl = $resp->paymentUrl;
+            $form='<form method="post">';
+            //$form='<a href="'.$redirectUrl.'">';  
+            $form.='<input type="submit" name="button" value="Proceed to Payment" class="btn btn-outline-primary me-2"/>';
+            $form.='</form>';
+            if(isset($_POST["button"])){
+                $this->duitku_invoice();
+            }
+            else{
+                echo $form;
+            }
+        }
+        else{
+            $this->duitku_invoice();
+        }
 	}
 	
     protected function validateTransaction(JPaymentStatus &$status) {
