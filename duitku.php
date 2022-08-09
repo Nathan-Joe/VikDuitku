@@ -43,7 +43,15 @@ abstract class AbstractDuitkuPayment extends JPayment{
 	public function __construct($alias, $order, $params = array()) {
 		parent::__construct($alias, $order, $params);
 	}
-	
+
+	function debug_to_console($data) {
+        $output = $data;
+        if (is_array($output))
+            $output = implode(',', $output);
+    
+        echo "<script>console.log('Debug Objects: " . $output . "' );</script>";
+    }
+
 	protected function beginTransaction() {
 		/** See the code below to build this method */
 
@@ -62,9 +70,9 @@ abstract class AbstractDuitkuPayment extends JPayment{
         $email = $this->get('custmail');
         $phone = substr(explode("\r\n", $cust_data)[3],7);
         $returnUrl = $this->get('return_url');
-        $return = str_replace("http://localhost","https://331d-182-253-47-123.ap.ngrok.io",$returnUrl);
+        $return = str_replace("http://localhost","https://ee4d-182-253-47-123.ap.ngrok.io",$returnUrl);
         $callbackUrl =$this->get('notify_url');
-        $callback = str_replace("http://localhost","https://331d-182-253-47-123.ap.ngrok.io",$callbackUrl);
+        $callback = str_replace("http://localhost","https://ee4d-182-253-47-123.ap.ngrok.io",$callbackUrl);
         
 
         if( $this->getParam('testmode') == 'Yes' ) {
@@ -94,8 +102,8 @@ abstract class AbstractDuitkuPayment extends JPayment{
             'customerVaName' => $name,
             'email' => $email,
             'phoneNumber' => $phone,
-            'callbackUrl' => esc_url_raw($callbackUrl),
-            'returnUrl' => esc_url_raw($returnUrl),
+            'callbackUrl' => esc_url_raw($callback),
+            'returnUrl' => esc_url_raw($return),
             'expiryPeriod' => $expiryPeriod
         );
 
@@ -113,22 +121,34 @@ abstract class AbstractDuitkuPayment extends JPayment{
             'httpversion' => '1.0',
             'headers'     => $headers,
         ); 
-        $response = wp_remote_post($action_url, $args);
+         $response = wp_remote_post($action_url, $args);
         
          $httpcode = wp_remote_retrieve_response_code($response);
          $server_output = wp_remote_retrieve_body($response);
          $resp = json_decode($server_output);
-         //echo $callbackUrl;
-         echo json_encode($params);
+         echo $httpcode;
+         if ($httpcode == 200)
+         {
+            $status = new JPaymentStatus();
+            $status -> appendLog($httpcode);
+         }
+         //echo json_encode($response);
+         //echo json_encode($server_output);
+         //echo json_encode($params);
          //echo $expiryPeriod;
          //echo json_encode($details);
          if (isset($resp->statusCode)){
             if($resp->statusCode == "00"){
                 if($this->getParam('uimode') == 'Redirect'){
                     $redirectUrl = $resp->paymentUrl;
+                    //$form='<form action="'.$action_url.'" method="post">';
                     $form='<a href="'.$redirectUrl.'">';  
-                    $form.='<input type="button" value="Proceed to Payment" class="btn btn-outline-primary me-2"/>';
+                    $form.='<input type="submit" name = "button" value="Proceed to Payment" class="btn btn-outline-primary me-2"/>';
+                    //$form.='</form>';
                     echo $form;
+                    if(isset($_POST["button"])){
+                        $response = wp_remote_post($action_url, $args);
+                    }
                 }
                 else{
                     $reference = $resp->reference;
@@ -187,10 +207,13 @@ abstract class AbstractDuitkuPayment extends JPayment{
 
         $callback = $_POST;
         $status -> appendLog(json_encode($callback, JSON_PRETTY_PRINT));
-        $status -> appendLog("Payment ".$resp->statusMessage);
+        $status -> appendLog("Server Body:");
+        $status -> appendLog($server_output);
+        $status -> appendLog("Response Code: ".$httpcode);
+        $status -> appendLog("Payment: ".$resp->statusMessage);
 
         if($signature != $calcSignature){
-            $status->appendLog( "Transaction Error!\n Signature Mismatched!"); 
+            $status->appendLog( "Transaction Error, Signature Mismatched!"); 
         }
 
         else {
