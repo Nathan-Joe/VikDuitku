@@ -60,9 +60,7 @@ abstract class AbstractDuitkuPayment extends JPayment{
         $email = $this->get('custmail');
         $phone = substr(explode("\r\n", $cust_data)[3],7);
         $returnUrl = $this->get('return_url');
-        $return = str_replace("http://localhost","https://ee4d-182-253-47-123.ap.ngrok.io",$returnUrl);
         $callbackUrl =$this->get('notify_url');
-        $callback = str_replace("http://localhost","https://ee4d-182-253-47-123.ap.ngrok.io",$callbackUrl);
         
 
         if( $this->getParam('testmode') == 'Yes' ) {
@@ -92,8 +90,8 @@ abstract class AbstractDuitkuPayment extends JPayment{
             'customerVaName' => $name,
             'email' => $email,
             'phoneNumber' => $phone,
-            'callbackUrl' => esc_url_raw($callback),
-            'returnUrl' => esc_url_raw($return),
+            'callbackUrl' => esc_url_raw($callbackUrl),
+            'returnUrl' => esc_url_raw($returnUrl),
             'expiryPeriod' => $expiryPeriod
         );
 
@@ -119,14 +117,16 @@ abstract class AbstractDuitkuPayment extends JPayment{
 
          if (isset($resp->statusCode)){
             if($resp->statusCode == "00"){
+                if($this->getParam('uimode') == 'Popup'){
+                    $reference = $resp->reference;
+                    echo '<script src="https://app-sandbox.duitku.com/lib/js/duitku.js"></script> <button type="button" id="test" class="btn btn-outline-primary me-2">test</button><script type="text/javascript">var libraryDuitkuCheckoutExecute=false; var libraryDuitkuCheckout=function (event){if (libraryDuitkuCheckoutExecute){return false;}libraryDuitkuCheckoutExecute=true; var checkoutButton=document.getElementById("test"); var REFERENCE_NUMBER="'.$reference.'"; var LANG="<%=lang %>"; var countExecute=0; var checkoutExecuted=false; var intervalFunction=0; function executeCheckout(){intervalFunction=setInterval(function (){try{console.log("Duitku payment running.", ++countExecute); checkout.process(REFERENCE_NUMBER); checkoutExecuted=true;}catch (e){if (countExecute >=20){location.reload(); checkoutButton.className="btn btn-info"; checkoutButton.innerHTML="Reloading..."; return;}}finally{clearInterval(intervalFunction);}}, 1000);}var clickCount=0; checkoutButton.className="btn btn-success"; checkoutButton.innerHTML="Proceed to Payment"; checkoutButton.onclick=function (){if (clickCount >=2){location.reload(); checkoutButton.className="btn btn-info"; checkoutButton.innerHTML="Reloading..."; return;}checkoutButton.className="btn btn-success"; checkoutButton.innerHTML="Proceed to Payment"; executeCheckout(); clickCount++;}; executeCheckout();}; document.addEventListener("DOMContentLoaded", libraryDuitkuCheckout); setTimeout(function (){console.log("calling"); libraryDuitkuCheckout(null);}, 30000);</script>';
+                }
+                else{
                 $redirectUrl = $resp->paymentUrl;
                 $form1 = '<a href="'.$redirectUrl.'">'; 
                 $form1.= '<input type="submit" value="Proceed to Payment" class="btn btn-outline-primary me-2"/>';
                 header("Location:".$redirectUrl);
                 exit;
-                if($this->getParam('uimode') == 'Popup'){
-                    $reference = $resp->reference;
-                    echo '<script src="https://app-sandbox.duitku.com/lib/js/duitku.js"></script> <button type="button" id="test" class="btn btn-outline-primary me-2">test</button><script type="text/javascript">var libraryDuitkuCheckoutExecute=false; var libraryDuitkuCheckout=function (event){if (libraryDuitkuCheckoutExecute){return false;}libraryDuitkuCheckoutExecute=true; var checkoutButton=document.getElementById("test"); var REFERENCE_NUMBER="'.$reference.'"; var LANG="<%=lang %>"; var countExecute=0; var checkoutExecuted=false; var intervalFunction=0; function executeCheckout(){intervalFunction=setInterval(function (){try{console.log("Duitku payment running.", ++countExecute); checkout.process(REFERENCE_NUMBER); checkoutExecuted=true;}catch (e){if (countExecute >=20){location.reload(); checkoutButton.className="btn btn-info"; checkoutButton.innerHTML="Reloading..."; return;}}finally{clearInterval(intervalFunction);}}, 1000);}var clickCount=0; checkoutButton.className="btn btn-success"; checkoutButton.innerHTML="Proceed to Payment"; checkoutButton.onclick=function (){if (clickCount >=2){location.reload(); checkoutButton.className="btn btn-info"; checkoutButton.innerHTML="Reloading..."; return;}checkoutButton.className="btn btn-success"; checkoutButton.innerHTML="Proceed to Payment"; executeCheckout(); clickCount++;}; executeCheckout();}; document.addEventListener("DOMContentLoaded", libraryDuitkuCheckout); setTimeout(function (){console.log("calling"); libraryDuitkuCheckout(null);}, 30000);</script>';
                 }
              }
          }
@@ -136,9 +136,7 @@ abstract class AbstractDuitkuPayment extends JPayment{
 		/** See the code below to build this method */
 
          if($this->getParam('uimode') == 'Redirect'){
-            //$redirectUrl = $resp->paymentUrl;
             $form='<form method="post">';
-            //$form='<a href="'.$redirectUrl.'">';  
             $form.='<input type="submit" name="button" value="Proceed to Payment" class="btn btn-outline-primary me-2"/>';
             $form.='</form>';
             if(isset($_POST["button"])){
